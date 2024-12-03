@@ -1,31 +1,40 @@
-#include <avr/io.h>
-#include <util/delay.h>
-#include <math.h>
-#include "MQ-135.h"
-#include "ADC.h"
+#include <DHT.h>
+#include <Arduino.h>
+
+// Pin configuration
+#define DHTPIN 2      // Digital pin where the DHT sensor is connected
+#define DHTTYPE DHT22 // DHT 22 (AM2302)
+
+#define MAXTIME 85 // Timeout for data reading
+
+// Create DHT object
+DHT dht(DHTPIN, DHTTYPE);
+
 int main()
 {
-  uint16_t adcValue;
-  float rs_ro_ratio;
-  float ppm;
+  // Arduino-specific initialization
+  init();             // Initialize Arduino core
+  Serial.begin(9600); // Initialize Serial communication at 9600 baud
+  dht.begin();        // Initialize the DHT sensor
 
-  // Initialize ADC
-  initADC();
-
-  while (1)
+  while (1) // Infinite loop
   {
-    // Read ADC value
-    adcValue = readADC(0); // Assuming MQ-135 is connected to ADC0
+    // Read temperature from the DHT sensor
+    float temperature = dht.readTemperature();
 
-    // Calculate Rs/R0 ratio
-    rs_ro_ratio = getRsRoRatio(adcValue);
+    if (isnan(temperature))
+    {
+      Serial.println("Failed to read from DHT sensor!");
+    }
+    else
+    {
+      Serial.print("Temperature: ");
+      Serial.print(temperature);
+      Serial.println(" °C");
+    }
 
-    // Calculate PPM
-    ppm = calculatePPM(rs_ro_ratio);
-
-    // Debugging or display: Send ppm to UART or display
-    _delay_ms(1000); // Delay for stability
+    delay(2000); // Wait for 2 seconds between readings
   }
 
-  return 0;
+  return 0; // This will never be reached
 }
