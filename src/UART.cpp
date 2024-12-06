@@ -27,6 +27,7 @@ void uart_transmit_string(const char *str)
     while (*str)
     {
         uart_transmit_char(*str++);
+        delayMs(10);
     }
 }
 
@@ -34,7 +35,9 @@ void uart_transmit_string(const char *str)
 char uart_receive_char()
 {
     while (!(UCSR0A & (1 << RXC0)))
-        ;                 // Wait for data to be received
+    {
+        delayMs(1); // Wait for data to be received
+    }       
     return UDR0; // Get and return received data from the buffer
 }
 
