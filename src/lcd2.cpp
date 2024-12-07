@@ -12,11 +12,13 @@
 
 void init_i2c()
 {
+
     PRR0 &= ~(1 << PRTWI); // by putting it to 0 we enable power to i2c to nyalain 2 wire serial interface
 
-    // Set clock frequency for I2C (prescale and TWBR)
-    TWSR = 0x00;                        // Prescaler value = 1
-    TWBR = 72;                          // SCL frequency = 100kHz, assuming 16MHz clock
+    TWSR &= ~((1 << TWPS0) | (1 << TWPS1)); // Set prescaler to 1
+
+    TWBR = 0xC6; // to find sclk using formula
+
     TWCR |= (1 << TWINT) | (1 << TWEN); // enter MT mode to enable 2
 }
 
@@ -44,7 +46,7 @@ void write(uint8_t data)
 
 void LCD_4BitCommand(uint8_t nibble, uint8_t control)
 {
-    uint8_t data = (nibble << 4) | control;
+    uint8_t data = (nibble << 4) | control | 0x08; // Ensure backlight is ON
     startI2C_Trans();
     write(LCD_I2C_ADDRESS << 1); // Write mode
     write(data | 0x04);          // Enable high

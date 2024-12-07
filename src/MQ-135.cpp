@@ -4,7 +4,7 @@
 #include "MQ-135.h"
 
 // Constants for MQ-135
-#define RL 10000 // Load resistor in ohms
+#define RL 7500 // Load resistor in ohms
 #define RO 10000 // Calibration resistance (to be adjusted)
 #define AIR_RATIOS 9.83 // Clean air Rs/R0 ratio for MQ-135
 
