@@ -57,7 +57,6 @@ int main()
 
   initUART();    // Initialize UART
   delayMs(1000); // Delay to allow JDY-31 to initialize
-  dht.begin();   // Initialize the DHT sensor
 
   uint16_t adcValue;
   float rs_ro_ratio, ppm;
@@ -67,7 +66,7 @@ int main()
   LCD_WriteString("Press the button to activate");
 
   // Main loop
-  check_connection_state();
+  // check_connection_state();
   float temperature;
   float humidity;
   char tempStr[10];
@@ -101,6 +100,7 @@ int main()
     }
     else if (MachineState == PRESSED)
     {
+      dht.begin(); // Initialize the DHT sensor
       // dht sensor activate
       temperature = dht.readTemperature();
       humidity = dht.readHumidity();
