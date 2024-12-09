@@ -23,6 +23,16 @@ typedef enum
 
 volatile machineState MachineState = RELEASED;
 
+typedef enum
+{
+  FRESH,
+  ROTTING,
+  ROTTEN,
+  idle
+} meatState;
+
+volatile meatState MeatState = idle;
+
 // Create DHT object
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -60,86 +70,116 @@ int main()
   check_connection_state();
   float temperature;
   float humidity;
+  char tempStr[10];
+  char humidityStr[10];
   while (1)
   {
 
     if (MachineState == RELEASED)
     {
+      if (MeatState == idle)
+      {
+        LCD_Clear();
+        LCD_moveCursor(0, 0);
+        LCD_WriteString("Push the button to read");
+      }
+      else if (MeatState == FRESH)
+      {
+        LCD_moveCursor(1, 0);
+        LCD_WriteString("FRESH MEAT");
+      }
+      else if (MeatState == ROTTING)
+      {
+        LCD_moveCursor(1, 0);
+        LCD_WriteString("ROTTING MEAT");
+      }
+      else if (MeatState == ROTTEN)
+      {
+        LCD_moveCursor(1, 0);
+        LCD_WriteString("ROTTEN MEAT");
+      }
     }
     else if (MachineState == PRESSED)
     {
-      // Read Temperature if needed
+      // dht sensor activate
       temperature = dht.readTemperature();
-      // Read Humidity
       humidity = dht.readHumidity();
-      // Read the ADC Value
+      uart_transmit_string("Temperature: ");
+      Serial.println(temperature);
+      uart_transmit_string("Humidity:");
+      Serial.println(humidity);
+      dtostrf(temperature, 4, 1, tempStr);  // Convert temperature to string (4 characters wide, 1 decimal place)
+      dtostrf(humidity, 4, 1, humidityStr); // Convert humidity to string (4 characters wide, 1 decimal place)
+      // mq1135 sensor activate and get the values
       adcValue = readADC(0);
-      // Calculate Rs/R0 ratio and gas concentration
       rs_ro_ratio = getRsRoRatio(adcValue);
       ppm = calculatePPM(rs_ro_ratio);
-      uart_transmit_string("ppm: ");
+      uart_transmit_string("PPM:");
       Serial.println(ppm);
+      LCD_Clear();
+      if (humidity > 50)
+      {
+        if (ppm <= 0.6)
+        {
+          MeatState = FRESH;
+          LCD_moveCursor(0, 0);
+          LCD_WriteString("T: ");
+          LCD_WriteString(tempStr);
+          LCD_WriteString(" H: ");
+          LCD_WriteString(humidityStr);
+        }
+        else if (ppm > 0.6 && ppm < 1)
+        {
+          MeatState = ROTTING;
+          LCD_moveCursor(0, 0);
+          LCD_WriteString("T: ");
+          LCD_WriteString(tempStr);
+          LCD_WriteString(" H: ");
+          LCD_WriteString(humidityStr);
+        }
+        else if (ppm >= 1)
+        {
+          MeatState = ROTTEN;
+          LCD_moveCursor(0, 0);
+          LCD_WriteString("T: ");
+          LCD_WriteString(tempStr);
+          LCD_WriteString(" H: ");
+          LCD_WriteString(humidityStr);
+        }
+        MachineState = RELEASED;
+      }
     }
     else if (MachineState == DB_PRESSED)
     {
+
       delayMs(50);
       MachineState = PRESSED;
     }
     else if (MachineState == DB_RELEASED)
     {
+
       delayMs(50);
       MachineState = RELEASED;
     }
 
-    if (humidity > 50)
-    {
-
-      if (ppm <= 0.6)
-      {
-        Serial.println("Fresh");
-        LCD_moveCursor(0, 0);
-        LCD_WriteString("T: ");
-        LCD_moveCursor(1, 0);
-        LCD_WriteString("FRESH");
-        // LCD_WriteString("good chicken");
-      }
-      else if (ppm > 0.6 && ppm < 1)
-      {
-        Serial.println("Medium Fresh");
-        LCD_moveCursor(0, 0);
-        LCD_WriteString("T: ");
-        LCD_moveCursor(1, 0);
-        LCD_WriteString("Medium Fresh");
-        // LCD_WriteString("i dont think this is okay TT");
-      }
-      else if (ppm >= 1)
-      {
-        Serial.println("Rotten");
-        LCD_moveCursor(0, 0);
-        LCD_WriteString("T: ");
-        LCD_moveCursor(1, 0);
-        LCD_WriteString("Rotten");
-        // LCD_WriteString("i dont think this is okay TT");
-      }
-    }
-
-    Serial.print("Temperature: ");
-    Serial.println(temperature);
     delayMs(2000); // Add delay to avoid frequent readings
   }
   return 0; // This will never be reached
 }
 
-ISR(INT2_vect)
+ISR(INT5_vect)
 {
   // it checks the state of the button to if it is in a release state itll go to the debouncing pressed state
   if (MachineState == RELEASED)
   {
     MachineState = DB_PRESSED;
+    Serial.print("button pressed");
+    Serial.print(MachineState);
   }
   else if (MachineState == PRESSED)
   {
     // it checks the state of the MachineState to if it is in a pressed state itll go to the debouncing release state
     MachineState = DB_RELEASED;
+    Serial.print("button pressed");
   }
 }
